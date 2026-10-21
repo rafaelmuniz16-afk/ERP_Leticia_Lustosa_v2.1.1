@@ -1,0 +1,20 @@
+{
+  "name": "erp-regression-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Testes de regressão, Aurora, temas, resumo e Central de Exportação. Não são carregados pelo ERP.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test *.test.cjs",
+    "browser": "node whatsapp-browser.cjs",
+    "browser:export": "node export-browser.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.3",
+    "playwright": "1.62.1",
+    "chart.js": "4.4.4",
+    "sweetalert2": "11.26.25"
+  }
+}
