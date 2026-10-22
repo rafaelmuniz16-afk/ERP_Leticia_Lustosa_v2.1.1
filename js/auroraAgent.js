@@ -416,3 +416,22 @@ export async function gerarResumoAurora(context, options = {}) {
   return message.content;
 }
 window.AuroraSummaryAI = Object.freeze({ generate: gerarResumoAurora });
+
+// Explicit aggregate-only query; same transport, models and API key.
+export async function analisarCentralTrabalho(context, options = {}) {
+  if (processandoRequisicao) throw new Error('CHAT_BUSY');
+  const ctx = window.obterContextoERP?.();
+  if (!ctx?.apiKey) throw new Error('NO_API_KEY');
+  const ai = window.ERPWorkAI;
+  if (!ai) throw new Error('AI_UNAVAILABLE');
+  const response = await chamarGroqComTools([
+    { role:'system', content:ai.prompt(options.repair) },
+    { role:'user', content:JSON.stringify(context) }
+  ], ctx.apiKey, { useTools:false, timeoutMs:15000, signal:options.signal,
+    responseFormat:ai.schema(context), maxCompletionTokens:options.repair ? 4096 : 2048, reasoningEffort:'low' });
+  const choice = response.choices?.[0], message = choice?.message;
+  if (choice?.finish_reason === 'length') throw new Error('TRUNCATED_WORK_RESPONSE');
+  if (message?.refusal || message?.tool_calls?.length || typeof message?.content !== 'string') throw new Error('INVALID_WORK_RESPONSE');
+  return message.content;
+}
+window.AuroraWorkAI = Object.freeze({ generate:analisarCentralTrabalho });
