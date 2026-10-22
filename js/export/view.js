@@ -4,6 +4,7 @@
   const dialog = document.getElementById('erpExportDialog'), opener = document.getElementById('erpExportOpen');
   if (!dialog || !opener) return;
   let snapshot, result, filters = F.defaults(), page = 0, timer, controller, busy = false, initialized = false;
+  let returnFocus = opener;
   const PAGE_SIZE = 25;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,6 +25,8 @@
         '<p class="export-hint">Mês de referência e data são independentes. O cadastro não possui ano de referência. Sem filtro de data, registros com data inválida também entram.</p>', true) +
       section('Tipo de encerramento', grid(select('types', 'Incluir tipos (OU)', {}, true) + select('excludeTypes', 'Excluir tipos', {}, true))) +
       section('Status Panjud', `<label class="export-field">Atalho<select id="ex-shortcut">${options({ '': 'Escolher um atalho…', all: 'Todos os status', confirmed: 'Confirmados (Sim)', unconfirmed: 'Não confirmados (Não)', refused: 'Recusados (Sim)', notRefused: 'Não recusados (Não)', pending: 'Não confirmados e não recusados', confirmedNotRefused: 'Confirmados e não recusados', conflict: 'Status conflitantes (ambos Sim)', incomplete: 'Status incompletos' })}</select></label>` +
+        select('statusMode', 'Leitura dos status', { normalized: 'Normalizada (padrão da exportação)', literal: 'Valores exatos do cadastro (Central de Trabalho)' }) +
+        select('workReview', 'Conferência da Central de Trabalho', { false: 'Sem restrição', true: 'Registros para conferência (observações opcionais)' }) +
         grid(select('panjud', 'Encerrado no Panjud', F.statusOps) + select('recusado', 'Recusado no Panjud', F.statusOps)) +
         select('statusIssue', 'Conferência dos status', { all: 'Sem condição adicional', conflict: 'Ambos Sim', incomplete: 'Ao menos um ausente / inválido' })) +
       section('Identificação do processo', grid(select('idOp', 'Condição do ID', F.textOps) + textarea('idValue', 'ID ou lista de IDs')) +
@@ -65,13 +68,13 @@
     dialog.querySelectorAll('[data-field]').forEach(el => { filters[el.dataset.field] = el.multiple ? Array.from(el.selectedOptions, o => o.value) : el.type === 'checkbox' ? el.checked : el.value; });
     const groups = [];
     dialog.querySelectorAll('.export-obs-rule').forEach(el => { (groups[+el.dataset.group] ||= []).push({ op: el.querySelector('[data-obs=op]').value, value: el.querySelector('[data-obs=value]').value, not: el.querySelector('[data-obs=not]').checked }); });
-    filters.obsGroups = groups;
+    filters.obsGroups = groups; filters.workReview = $('ex-workReview').value === 'true';
   }
   function fill() {
     dialog.querySelectorAll('[data-field]').forEach(el => {
       const value = filters[el.dataset.field];
       if (el.multiple) Array.from(el.options).forEach(o => { o.selected = value.includes(o.value); });
-      else if (el.type === 'checkbox') el.checked = value; else el.value = value;
+      else if (el.type === 'checkbox') el.checked = value; else el.value = String(value);
     }); renderGroups();
   }
   function setOptions(id, values) {
@@ -150,11 +153,17 @@
     } catch (error) { $('ex-status').textContent = error.name === 'AbortError' ? 'Exportação cancelada.' : error.message || 'Não foi possível gerar o arquivo. Tente novamente.'; }
     finally { if (controller === jobController) { controller = null; setBusy(false); } }
   }
-  opener.addEventListener('click', () => {
+  function open(options = {}) {
+    if (dialog.open) return;
+    returnFocus = options.returnFocus || opener;
+    if (options.filters) filters = { ...F.defaults(), ...structuredClone(options.filters) };
     initialize(); $('ex-status').textContent = ''; dialog.showModal();
     try { capture(); } catch (e) { $('ex-status').textContent = e.message; $('ex-generate').disabled = true; }
+    if (options.filters) $('ex-status').textContent = 'Consulta recebida da Central de Trabalho. Todos os critérios foram transferidos; a base disponível foi relida.';
     $('ex-close').focus();
-  });
+  }
+  E.View = Object.freeze({ open });
+  opener.addEventListener('click', () => open());
   $('ex-close').addEventListener('click', () => dialog.close());
   dialog.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
@@ -164,7 +173,7 @@
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
   });
-  dialog.addEventListener('close', () => { clearTimeout(timer); controller?.abort(); snapshot = null; result = null; $('ex-preview-body').replaceChildren(); opener.focus({ preventScroll: true }); });
+  dialog.addEventListener('close', () => { clearTimeout(timer); controller?.abort(); snapshot = null; result = null; $('ex-preview-body').replaceChildren(); if (!document.querySelector('dialog[open]')) returnFocus.focus({ preventScroll: true }); });
   $('ex-clear').addEventListener('click', reset); $('ex-all').addEventListener('click', reset);
   $('ex-dashboard').addEventListener('click', importDashboard);
   $('ex-reload').addEventListener('click', () => { read(); try { capture(); $('ex-status').textContent = 'Dados disponíveis relidos. Nenhuma sincronização foi solicitada.'; } catch (e) { $('ex-status').textContent = e.message; } });

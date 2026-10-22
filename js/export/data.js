@@ -67,15 +67,26 @@
     });
     return Object.freeze({ rows: Object.freeze(rows), today: td.iso, capturedAt: new Date().toISOString() });
   }
-  function stats(rows) {
+  // Read-only checks shared by the work query and export.
+  const reviewLabels = Object.freeze({ duplicateID:'Possível duplicidade de ID na base disponível', duplicateCNJ:'Possível duplicidade de processo na base disponível', invalidCNJ:'CNJ ausente ou reprovado pelo validador do ERP', invalidDate:'Data ausente ou inválida', futureDate:'Data posterior ao dia atual do ERP', referenceMismatch:'Mês de referência diferente do mês da data', invalidReference:'Referência ausente ou fora de 01 a 12', unknownType:'Tipo fora das opções do cadastro', statusConflict:'Panjud e Recusado estão simultaneamente como Sim', invalidStatus:'Status ausente ou fora dos valores exatos Sim / Não', missingEssential:'Campo essencial ausente' });
+  const literalStatus = v => v === 'Sim' ? 'sim' : v === 'Não' ? 'nao' : 'invalid';
+  function review(row) {
+    const keys = row.quality.filter(k => !['noObs','statusIssue','unknownType'].includes(k));
+    if (!row.reference) keys.push('invalidReference');
+    if (!knownTypes.includes(row.record.tipo)) keys.push('unknownType');
+    if (row.panjud === 'sim' && row.recusado === 'sim') keys.push('statusConflict');
+    if (literalStatus(row.record.panjud) === 'invalid' || literalStatus(row.record.recusado) === 'invalid') keys.push('invalidStatus');
+    return keys;
+  }
+  function stats(rows, statusMode = 'normalized') {
     const types = new Map(); let confirmed = 0, refused = 0, min = '', max = '', invalidDates = 0;
     rows.forEach(r => {
       const type = r.record.tipo || '(sem tipo)'; types.set(type, (types.get(type) || 0) + 1);
-      if (r.panjud === 'sim') confirmed++;
-      if (r.recusado === 'sim') refused++;
+      if ((statusMode === 'literal' ? literalStatus(r.record.panjud) : r.panjud) === 'sim') confirmed++;
+      if ((statusMode === 'literal' ? literalStatus(r.record.recusado) : r.recusado) === 'sim') refused++;
       if (r.date) { if (!min || r.date.iso < min) min = r.date.iso; if (!max || r.date.iso > max) max = r.date.iso; } else invalidDates++;
     });
     return { total: rows.length, types: Array.from(types), confirmed, refused, min, max, invalidDates };
   }
-  return Object.freeze({ fields, headers, knownTypes, text, normalize, idKey, digits, status, date, fromOrdinal, formatDate, reference, snapshot, stats });
+  return Object.freeze({ fields, headers, knownTypes, text, normalize, idKey, digits, status, date, fromOrdinal, formatDate, reference, snapshot, stats, review, reviewLabels, literalStatus });
 });

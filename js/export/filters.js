@@ -10,7 +10,7 @@
   const qualityLabels = { duplicateID: 'ID duplicado', duplicateCNJ: 'Processo duplicado', invalidCNJ: 'CNJ inválido ou ausente', noObs: 'Sem observações', invalidDate: 'Data inválida ou ausente', futureDate: 'Data futura', referenceMismatch: 'Referência divergente da data', unknownType: 'Tipo desconhecido', statusIssue: 'Status conflitantes ou incompletos', missingEssential: 'Campo essencial ausente', clean: 'Sem ocorrências detectadas' };
   const statusOps = { all: 'Todos', sim: 'Sim', nao: 'Não', invalid: 'Ausente / inválido', notSim: 'Diferente de Sim (inclui inválidos)', notNao: 'Diferente de Não (inclui inválidos)' };
   const sortLabels = { source: 'Ordem original', date: 'Data', id: 'ID', cnj: 'Nº Processo', type: 'Tipo de encerramento', reference: 'Mês de referência', panjud: 'Encerrado no Panjud', recusado: 'Recusado no Panjud', hasObs: 'Presença de observações' };
-  function defaults() { return { period: 'all', start: '', end: '', dateOp: 'all', dateA: '', dateB: '', day: '', weekdays: [], dayGroup: 'all', years: [], reference: [], referenceRelation: 'all', types: [], excludeTypes: [], panjud: 'all', recusado: 'all', statusIssue: 'all', idOp: 'all', idValue: '', cnjOp: 'all', cnjValue: '', cnjYear: '', cnjBranch: '', cnjCourt: '', cnjOrigin: '', obsGroups: [], ignoreAccents: true, quality: [], sort: 'source', direction: 'asc', sort2: 'source', direction2: 'asc', dashboard: null }; }
+  function defaults() { return { period: 'all', start: '', end: '', dateOp: 'all', dateA: '', dateB: '', day: '', weekdays: [], dayGroup: 'all', years: [], reference: [], referenceRelation: 'all', types: [], excludeTypes: [], panjud: 'all', recusado: 'all', statusIssue: 'all', idOp: 'all', idValue: '', cnjOp: 'all', cnjValue: '', cnjYear: '', cnjBranch: '', cnjCourt: '', cnjOrigin: '', obsGroups: [], ignoreAccents: true, quality: [], sort: 'source', direction: 'asc', sort2: 'source', direction2: 'asc', dashboard: null, statusMode: 'normalized', workReview: false }; }
   function monthStart(y, m) { const d = new Date(0); d.setUTCFullYear(y, m, 1); d.setUTCHours(0, 0, 0, 0); return d.getTime() / 86400000; }
   function range(f, today) {
     const t = D.date(today); if (!t) throw new Error('Data local inválida.');
@@ -109,7 +109,10 @@
       if (['same', 'different'].includes(f.referenceRelation) && (!r.date || !r.reference || ((+r.reference === r.date.month) !== (f.referenceRelation === 'same')))) return false;
       if (f.types.length && !f.types.includes(r.type)) return false;
       if (f.excludeTypes.includes(r.type)) return false;
-      if (!matchStatus(r.panjud, f.panjud) || !matchStatus(r.recusado, f.recusado)) return false;
+      const pan = f.statusMode === 'literal' ? D.literalStatus(r.record.panjud) : r.panjud;
+      const refused = f.statusMode === 'literal' ? D.literalStatus(r.record.recusado) : r.recusado;
+      if (!matchStatus(pan, f.panjud) || !matchStatus(refused, f.recusado)) return false;
+      if (f.workReview && !D.review(r).length) return false;
       if (f.statusIssue === 'conflict' && !(r.panjud === 'sim' && r.recusado === 'sim')) return false;
       if (f.statusIssue === 'incomplete' && !(r.panjud === 'invalid' || r.recusado === 'invalid')) return false;
       if (!compareText(r.record.id, f.idOp, f.idValue, D.idKey, r.duplicateID)) return false;
@@ -128,7 +131,7 @@
       return c * (dir === 'desc' ? -1 : 1);
     }
     rows.sort((x, y) => compare(x, y, f.sort, f.direction) || compare(x, y, f.sort2, f.direction2) || x.index - y.index);
-    return { rows, errors: [], stats: D.stats(rows) };
+    return { rows, errors: [], stats: D.stats(rows, f.statusMode) };
   }
   function shortcut(input, value) {
     const f = { ...input, panjud: 'all', recusado: 'all', statusIssue: 'all' };
@@ -154,6 +157,8 @@
     for (const [key, label] of [['cnjYear', 'Ano CNJ'], ['cnjBranch', 'Ramo'], ['cnjCourt', 'Tribunal'], ['cnjOrigin', 'Origem']]) if (f[key]) add(key, `${label}: ${f[key]}`);
     f.obsGroups.forEach((g, i) => { if (g.length) add(`obs:${i}`, `Obs. (${g.map(r => `${r.not ? 'NÃO ' : ''}${obsOps[r.op]}${['empty', 'filled'].includes(r.op) ? '' : ': ' + r.value}`).join(' OU ')})`); });
     if (f.obsGroups.length && !f.ignoreAccents) add('ignoreAccents', 'Busca: distingue acentos');
+    if (f.statusMode === 'literal') add('statusMode', 'Status: valores exatos do cadastro (Sim / Não)');
+    if (f.workReview) add('workReview', 'Conferência cadastral (observações opcionais)');
     if (f.quality.length) add('quality', `Qualidade: ${f.quality.map(q => qualityLabels[q]).join(' OU ')}`);
     if (f.dashboard) for (const [key, value] of Object.entries(f.dashboard)) if (value && key !== 'search') add('dashboard:' + key, `Dashboard · ${{ month: 'referência (com fallback original)', type: 'tipo', panjud: 'encerrado', query: 'busca literal em ' + (f.dashboard.search === 'id' ? 'ID' : 'CNJ'), start: 'data inicial', end: 'data final' }[key]}: ${value}`);
     return out;
