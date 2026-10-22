@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  let openDialog;
   const $ = id => document.getElementById(id);
   async function copyText(text, field) {
     if (navigator.clipboard?.writeText && window.isSecureContext) {
@@ -121,17 +122,22 @@
       if (selection) fillControls(selection);
       valid = true; dialog.close();
     }
-    opener.addEventListener('click', () => {
+    let returnFocus = opener;
+    openDialog = (options = {}) => {
       if (dialog.open) return;
+      returnFocus = options.returnFocus || opener;
+      $('erpSummaryHandoff').textContent = options.notice || '';
+      $('erpSummaryHandoff').hidden = !options.notice;
       const today = currentToday(); $('erpSummaryStart').max = today; $('erpSummaryEnd').max = today;
       if (!selection) selection = { mode: 'simple', period: 'today', start: today, end: today, finance: false };
-      fillControls(selection); dialog.showModal();
-      if (!dirty) update(); else status('Sua edição anterior foi preservada nesta aba. Atualizar prévia consulta os dados atuais.');
-      $('erpSummaryClose').focus();
-    });
+      fillControls(options.selection ? { ...selection, ...options.selection } : selection); dialog.showModal();
+      if (options.selection || !dirty) update(); else status('Sua edição anterior foi preservada nesta aba. Atualizar prévia consulta os dados atuais.');
+      if (!pending) $('erpSummaryClose').focus();
+    };
+    opener.addEventListener('click', () => openDialog());
     $('erpSummaryClose').addEventListener('click', close);
     dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
-    dialog.addEventListener('close', () => { cancelGeneration(); dismissConfirmation(); opener.focus({ preventScroll: true }); });
+    dialog.addEventListener('close', () => { cancelGeneration(); dismissConfirmation(); if (!document.querySelector('dialog[open]')) returnFocus.focus({ preventScroll: true }); });
     // Proteção adicional para implementações incompletas de dialog.
     dialog.addEventListener('keydown', event => {
       if (event.key !== 'Tab') return;
@@ -144,7 +150,9 @@
     $('erpSummaryRefresh').addEventListener('click', update);
     $('erpSummaryGenerate').addEventListener('click', generate);
     $('erpSummaryKeep').addEventListener('click', () => {
-      dismissConfirmation(); fillControls(selection); valid = true; status('Sua edição foi mantida.'); syncControls(); preview.focus();
+      dismissConfirmation(); fillControls(selection); valid = true;
+      if (!$('erpSummaryHandoff').hidden) $('erpSummaryHandoff').textContent = 'Sua edição e o período anterior foram preservados. A solicitação de mudança de período não foi aplicada. Confira a prévia e o escopo abaixo; o resumo não aplica os filtros detalhados da Central.';
+      status('Sua edição foi mantida.'); syncControls(); preview.focus();
     });
     $('erpSummaryReplace').addEventListener('click', async () => {
       const action = pending; dismissConfirmation();
@@ -167,6 +175,6 @@
     });
     window.addEventListener('pagehide', cancelGeneration);
   }
-  window.ERPWhatsAppView = Object.freeze({ bind, copyText });
+  window.ERPWhatsAppView = Object.freeze({ bind, copyText, open: options => { bind(); return openDialog?.(options); } });
   bind();
 })();
