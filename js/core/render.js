@@ -155,5 +155,7 @@ function renderAll() {
   renderLogs();
   $('sideCount').textContent = bd.length;
   if (typeof refreshAuroraLive === 'function') refreshAuroraLive();
+  // Read-only consumers; no data or credentials in this event.
+  window.dispatchEvent(new Event('erp:rendered'));
 }
 
