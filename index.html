@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/aurora-live.css">
 <link rel="stylesheet" href="css/whatsapp-summary.css">
 <link rel="stylesheet" href="css/export-center.css">
+<link rel="stylesheet" href="css/work-center.css">
 <link rel="stylesheet" href="css/glassy-carousel.css">
 </head>
 <body>
@@ -101,6 +102,7 @@
         <span class="side-aurora-tag">RADAR</span>
         <span class="aurora-live-date" id="auroraLiveDate">Acompanhando seu dia</span>
         <button type="button" id="erpSummaryOpen" class="aurora-live-button" aria-label="Copiar resumo de produtividade" title="Copiar resumo de produtividade" aria-haspopup="dialog" aria-controls="erpSummaryDialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 5V3h11v14h-2M4 7h11v14H4z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Copiar Resumo</span></button>
+        <button type="button" id="erpWorkOpen" class="aurora-live-button" aria-label="Abrir Central de Trabalho" title="Consultar registros e ações rápidas" aria-haspopup="dialog" aria-controls="erpWorkDialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16v14H4zM9 7V3h6v4M4 12h16M10 12v3h4v-3" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Central de Trabalho</span></button>
         <button type="button" id="erpExportOpen" class="aurora-live-button" aria-label="Abrir Central de Exportação" title="Exportar dados para Excel ou PDF" aria-haspopup="dialog" aria-controls="erpExportDialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 3H5v18h14V9l-6-6zm0 0v6h6M12 11v7m-3-3 3 3 3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Exportar Dados</span></button>
       </header>
       <p class="aurora-live-subtitle">Seu progresso, sua referência. O Radar acompanha o mês selecionado; seu desempenho acompanha hoje.</p>
@@ -351,6 +353,7 @@
       <label class="summary-field" for="erpSummaryStart">Data inicial<input type="date" id="erpSummaryStart"></label>
       <label class="summary-field" for="erpSummaryEnd">Data final<input type="date" id="erpSummaryEnd"></label>
     </div>
+    <p id="erpSummaryHandoff" class="summary-hint" role="note" hidden></p>
     <p id="erpSummaryScope" class="summary-hint"></p>
     <div id="erpSummaryConfirm" class="summary-confirm" role="alert" hidden><p>Você editou a prévia. Deseja substituí-la com os dados da nova seleção?</p><div><button type="button" id="erpSummaryKeep">Manter minha edição</button><button type="button" id="erpSummaryReplace">Substituir prévia</button></div></div>
     <div class="summary-preview-heading"><label for="erpSummaryPreview">Prévia editável</label><span id="erpSummarySource" class="summary-source">Sem IA</span></div>
@@ -362,6 +365,25 @@
     <p id="erpSummaryStatus" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="summary-actions"><button type="button" id="erpSummaryRefresh">Atualizar prévia</button><button type="button" id="erpSummaryGenerate" hidden>✦ Gerar com Aurora</button><button type="button" id="erpSummaryCopy" class="summary-primary">Copiar para WhatsApp</button></div>
   </footer>
+</dialog>
+
+<dialog id="erpWorkDialog" aria-labelledby="wc-title" aria-describedby="wc-description">
+<header class="wc-header"><div><p class="wc-eyebrow">Aurora Live · consulta e organização</p><h2 id="wc-title">Central de Trabalho</h2><p id="wc-description">Seus registros, conferências e ações rápidas em um só lugar.</p></div><button type="button" id="wc-close" aria-label="Fechar Central de Trabalho" title="Fechar (Esc)">✕</button></header>
+<div class="wc-body">
+<p id="wc-source" class="wc-hint"></p>
+<section aria-labelledby="wc-overview-title"><h3 id="wc-overview-title">Visão geral</h3><p id="wc-scope" class="wc-hint"></p><div id="wc-cards" class="wc-cards"></div><p id="wc-note" class="wc-hint"></p></section>
+<section id="wc-filters" aria-labelledby="wc-filters-title"><div class="wc-section-heading"><h3 id="wc-filters-title">Encontrar registros</h3><button type="button" id="wc-clear">Limpar todos os filtros</button></div>
+<div class="wc-period"><label class="wc-field">Período<select id="wc-period"></select></label><div id="wc-custom" class="wc-grid" hidden><label class="wc-field">Data inicial<input type="date" id="wc-start"></label><label class="wc-field">Data final<input type="date" id="wc-end"></label></div></div>
+<div id="wc-quick" class="wc-toolbar" role="group" aria-label="Consultas rápidas combináveis"></div>
+<details class="wc-filter-details"><summary>Busca e filtros complementares</summary><div class="wc-grid"><label class="wc-field">ID contém<input id="wc-id" type="search" placeholder="Buscar ID"></label><label class="wc-field">Número do processo contém<input id="wc-cnj" type="search" inputmode="numeric" placeholder="Com ou sem máscara"></label><label class="wc-field">Tipo de encerramento<select id="wc-type"></select></label><label class="wc-field">Mês de referência<select id="wc-reference"></select></label><label class="wc-field">Encerrado no Panjud<select id="wc-panjud"></select></label><label class="wc-field">Recusado no Panjud<select id="wc-recusado"></select></label><label class="wc-field wc-wide">Observações contêm<input id="wc-observations" type="search" placeholder="Busca textual, sem interpretação por IA"></label></div></details>
+<div id="wc-chips" class="wc-toolbar" aria-label="Filtros ativos"></div><p id="wc-errors" role="alert" hidden></p></section>
+<section id="wc-list" aria-labelledby="wc-results-title"><div class="wc-section-heading"><div><h3 id="wc-results-title" tabindex="-1">Registros selecionados</h3><strong id="wc-count" aria-live="polite"></strong></div><div class="wc-sort"><label class="wc-field">Ordenar por<select id="wc-sort"></select></label><label class="wc-field">Direção<select id="wc-direction"><option value="desc">Decrescente</option><option value="asc">Crescente</option></select></label></div></div><p id="wc-result-metrics" class="wc-hint"></p>
+<div class="wc-table-scroll" role="region" tabindex="0" aria-label="Tabela de registros com rolagem horizontal"><table><thead><tr><th scope="col">ID</th><th scope="col">Nº Processo</th><th scope="col">Tipo</th><th scope="col">Data</th><th scope="col">Encerrado no Panjud</th><th scope="col">Recusado no Panjud</th><th scope="col">Observações</th><th scope="col">Ações</th></tr></thead><tbody id="wc-rows"></tbody></table></div>
+<p id="wc-empty" class="wc-empty" hidden>Nenhum registro corresponde à consulta. Revise o período ou remova filtros acima.</p><div class="wc-pagination"><button type="button" id="wc-prev" aria-label="Página anterior">← Anterior</button><span id="wc-page"></span><button type="button" id="wc-next" aria-label="Próxima página">Próxima →</button></div></section>
+<section id="wc-details" class="wc-panel" aria-labelledby="wc-detail-title" hidden><div class="wc-section-heading"><h3 id="wc-detail-title">Detalhes do registro</h3><button type="button" id="wc-detail-close">← Voltar à lista</button></div><dl id="wc-detail-fields"></dl><h4>Conferências identificáveis</h4><ul id="wc-detail-alerts"></ul><p class="wc-hint">Alertas cadastrais não comprovam erros nem pendências jurídicas. Observações são opcionais. Nenhum dado foi alterado.</p><button type="button" id="wc-detail-edit">Abrir no cadastro</button></section>
+<section class="wc-panel" id="wc-ai" aria-labelledby="wc-ai-title" aria-busy="false"><div class="wc-section-heading"><div><p class="wc-eyebrow">Interpretação opcional</p><h3 id="wc-ai-title">Aurora, sobre esta seleção</h3></div><button type="button" id="wc-analyze">✦ Analisar com Aurora</button></div><p id="wc-ai-status" class="wc-hint" role="status"></p><ul id="wc-ai-result"></ul></section>
+<section aria-labelledby="wc-actions-title"><h3 id="wc-actions-title">Continuar o trabalho</h3><div class="wc-toolbar"><button type="button" id="wc-export" class="wc-primary">Exportar resultados</button><button type="button" id="wc-summary">Copiar Resumo</button><button type="button" id="wc-reload">Atualizar consulta</button></div><p class="wc-hint">Exportação: recebe todos os filtros desta consulta. Copiar Resumo: usa todos os registros do período, até hoje, sem filtros de tipo, status ou busca; o escopo será informado no resumo.</p><button type="button" id="wc-advanced" class="wc-link">Abrir filtros avançados na Central de Exportação →</button></section>
+</div><footer class="wc-footer"><p id="wc-status" role="status" aria-live="polite">Somente leitura · nenhum registro é alterado pela consulta.</p></footer>
 </dialog>
 
 <dialog id="erpExportDialog" aria-labelledby="ex-title" aria-describedby="ex-description">
@@ -405,6 +427,9 @@
 <script src="js/export/pdf.js" defer></script>
 <script src="js/export/documents.js" defer></script>
 <script src="js/export/view.js" defer></script>
+<script src="js/work-center/core.js" defer></script>
+<script src="js/work-center/ai.js" defer></script>
+<script src="js/work-center/view.js" defer></script>
 <script src="js/themes/effects/registry.js" defer></script>
 <script src="js/themes/effects/original.js" defer></script>
 <script src="js/themes/effects/claro.js" defer></script>
